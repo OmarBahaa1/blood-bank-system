@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}لوحة التحكم | {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">لوحة التحكم الرئيسية</h3>
+        <p class="text-muted small mb-0">نظرة لحظية على مخزون الدم، الحجر الصحي، وطلبات المستشفيات</p>
+    </div>
+    {% if session.get('role') in ['Admin', 'Bank_Staff'] %}
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('donors') }}" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1">
+            <i data-lucide="user-plus" class="icon-sm"></i> تبرع جديد
+        </a>
+        <a href="{{ url_for('requests_page') }}" class="btn btn-brand btn-sm d-inline-flex align-items-center gap-1">
+            <i data-lucide="ambulance" class="icon-sm"></i> صرف طلبات
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ملخص الأرقام السريعة -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card card-modern card-hover h-100 border-start border-4 border-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
+                    <span>إجمالي الأكياس المتاحة</span>
+                    <i data-lucide="droplet" class="icon-sm text-success"></i>
+                </div>
+                <div class="fs-2 fw-bold text-success">{{ total_available }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-modern card-hover h-100 border-start border-4 border-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
+                    <span>أكياس تحت الفحص</span>
+                    <i data-lucide="flask-conical" class="icon-sm text-warning"></i>
+                </div>
+                <div class="fs-2 fw-bold text-warning">{{ quarantine_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-modern card-hover h-100 border-start border-4 border-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
+                    <span>فصائل بها عجز حاد</span>
+                    <i data-lucide="alert-triangle" class="icon-sm text-danger"></i>
+                </div>
+                <div class="fs-2 fw-bold text-danger">{{ shortages | length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card card-modern card-hover h-100 border-start border-4 border-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
+                    <span>طلبات مفتوحة</span>
+                    <i data-lucide="hospital" class="icon-sm text-primary"></i>
+                </div>
+                <div class="fs-2 fw-bold text-primary">{{ open_requests | length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- تنبيهات العجز والصلاحية -->
+{% if shortages %}
+<div class="alert alert-danger border-0 shadow-sm d-flex align-items-center flex-wrap gap-2">
+    <i data-lucide="alert-octagon" class="icon-sm"></i>
+    <strong>تنبيه عجز في المخزون:</strong>
+    {% for s in shortages %}
+        <span class="badge bg-danger">{{ s.type_name }} (عجز {{ s.balance | abs }} كيس)</span>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if expiring_soon %}
+<div class="alert alert-warning border-0 shadow-sm d-flex align-items-center flex-wrap gap-2">
+    <i data-lucide="clock" class="icon-sm"></i>
+    <strong>أكياس تنتهي صلاحيتها خلال 7 أيام (أولوية FEFO):</strong>
+    {% for u in expiring_soon %}
+        <span class="badge bg-dark">كيس #{{ u.unit_id }} ({{ u.type_name }}) - متبقي {{ u.days_left }} يوم</span>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- المخزون حسب الفصيلة + الرسم البياني -->
+<div class="row g-4 mt-2 mb-4">
+    <div class="col-lg-7">
+        <h5 class="fw-bold mb-3">المخزون المتاح حسب الفصيلة</h5>
+        <div class="row g-3">
+            {% for item in stock_by_type %}
+            <div class="col-6 col-sm-3">
+                <div class="card card-modern card-hover text-center h-100">
+                    <div class="card-body py-3">
+                        <span class="badge bg-danger-subtle text-danger blood-badge px-3 py-2 mb-2" dir="ltr">{{ item.type_name }}</span>
+                        <div class="fs-3 fw-bold">{{ item.units_available }} <span class="fs-6 fw-normal text-muted">كيس</span></div>
+                        <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                            {% if item.nearest_expiry %}
+                                أقرب انتهاء: {{ item.nearest_expiry }}
+                            {% else %}
+                                لا يوجد رصيد
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <h5 class="fw-bold mb-3">التوزيع البصري للمخزون</h5>
+        <div class="card card-modern p-3">
+            <div id="stockChart"></div>
+        </div>
+    </div>
+</div>
+
+<!-- جدول طلبات المستشفيات المفتوحة -->
+<div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+    <h5 class="fw-bold mb-0">طلبات المستشفيات المفتوحة (مرتبة بالأولوية)</h5>
+    {% if session.get('role') in ['Admin', 'Bank_Staff'] %}
+    <a href="{{ url_for('requests_page') }}" class="btn btn-sm btn-outline-secondary">إدارة وصرف الطلبات ←</a>
+    {% endif %}
+</div>
+<div class="card card-modern overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-modern table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>المستشفى</th>
+                    <th>المدينة</th>
+                    <th>الفصيلة</th>
+                    <th>المطلوب</th>
+                    <th>المُسلّم</th>
+                    <th>المتبقي</th>
+                    <th>الأولوية</th>
+                    <th>الحالة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in open_requests %}
+                <tr>
+                    <td class="text-muted">{{ req.request_id }}</td>
+                    <td class="fw-semibold">{{ req.hospital }}</td>
+                    <td>{{ req.city }}</td>
+                    <td><span class="badge bg-danger" dir="ltr">{{ req.type_name }}</span></td>
+                    <td>{{ req.units_needed }}</td>
+                    <td>{{ req.units_fulfilled }}</td>
+                    <td class="fw-bold text-danger">{{ req.units_missing }}</td>
+                    <td>
+                        {% if req.urgency == 'Urgent' %}
+                            <span class="badge bg-danger badge-urgent">عاجل</span>
+                        {% else %}
+                            <span class="badge bg-secondary">عادي</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if req.status == 'Partial' %}
+                            <span class="badge bg-warning text-dark">جزئي</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark">قيد الانتظار</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">لا توجد طلبات مفتوحة حالياً</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    const labels = [{% for item in stock_by_type %}"{{ item.type_name }}",{% endfor %}];
+    const counts = [{% for item in stock_by_type %}{{ item.units_available }},{% endfor %}];
+
+    const options = {
+        chart: { type: 'bar', height: 245, toolbar: { show: false }, fontFamily: 'IBM Plex Sans Arabic, sans-serif' },
+        series: [{ name: 'عدد الأكياس المتاحة', data: counts }],
+        xaxis: { categories: labels },
+        colors: ['#b91c1c'],
+        plotOptions: { bar: { borderRadius: 6, columnWidth: '48%' } },
+        dataLabels: { enabled: true },
+        grid: { borderColor: '#f1f5f9' }
+    };
+    new ApexCharts(document.querySelector("#stockChart"), options).render();
+</script>
+{% endblock %}

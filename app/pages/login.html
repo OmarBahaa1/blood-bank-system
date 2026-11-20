@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}تسجيل الدخول | {{ project_name }}{% endblock %}
+{% block body_class %}login-bg{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 82vh;">
+    <div class="col-md-5 col-lg-4">
+        <div class="card card-modern shadow-lg border-0">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white shadow-sm rounded-4 mb-3 p-2" style="width: 76px; height: 76px;">
+                        <img src="{{ url_for('static', filename='logo.svg') }}" alt="Wateen Logo" width="52" height="52">
+                    </div>
+                    <h3 class="fw-bold text-danger mb-1">{{ project_name }}</h3>
+                    <p class="text-muted small mb-0">{{ project_tagline }}</p>
+                </div>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">اسم المستخدم</label>
+                        <input type="text" name="username" class="form-control form-control-lg fs-6" placeholder="مثال: admin" required autofocus>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small">كلمة المرور</label>
+                        <input type="password" name="password" class="form-control form-control-lg fs-6" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-brand w-100 py-2.5 fw-bold">دخول إلى النظام</button>
+                </form>
+
+                <hr class="my-4">
+                <div class="small text-muted text-center">
+                    <div class="mb-1">حسابات التجربة:</div>
+                    <code>admin / admin123</code> • <code>lab / lab123</code> • <code>staff / staff123</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

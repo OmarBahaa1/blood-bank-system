@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}المتبرعين والتبرعات | {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">إدارة المتبرعين والتبرعات</h3>
+        <p class="text-muted small mb-0">تسجيل متبرعين جدد أو إضافة عملية تبرع (تُرسل تلقائياً للحجر الصحي للفحص)</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-danger d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#newDonorModal">
+            <i data-lucide="user-plus" class="icon-sm"></i> متبرع جديد
+        </button>
+        <button class="btn btn-brand d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#newDonationModal">
+            <i data-lucide="droplet" class="icon-sm"></i> تسجيل تبرع
+        </button>
+    </div>
+</div>
+
+<!-- شريط البحث الفوري -->
+<div class="card card-modern p-3 mb-4">
+    <div class="input-group">
+        <span class="input-group-text bg-white border-end-0"><i data-lucide="search" class="icon-sm text-muted"></i></span>
+        <input type="text" id="donorSearch" class="form-control border-start-0" placeholder="ابحث باسم المتبرع، الرقم القومي، المدينة، أو فصيلة الدم...">
+    </div>
+</div>
+
+<!-- جدول المتبرعين -->
+<div class="card card-modern overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-modern table-hover align-middle mb-0" id="donorsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>الاسم الكامل</th>
+                    <th>الرقم القومي</th>
+                    <th>الفصيلة</th>
+                    <th>النوع / الوزن</th>
+                    <th>المدينة</th>
+                    <th>آخر تبرع</th>
+                    <th>حالة الأهلية</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in donors %}
+                <tr>
+                    <td class="text-muted">{{ d.donor_id }}</td>
+                    <td class="fw-semibold">{{ d.full_name }}</td>
+                    <td><code>{{ d.national_id }}</code></td>
+                    <td><span class="badge bg-danger-subtle text-danger fw-bold px-2 py-1" dir="ltr">{{ d.type_name }}</span></td>
+                    <td class="small">{{ 'ذكر' if d.gender == 'Male' else 'أنثى' }} • {{ d.weight_kg or '-' }} كجم</td>
+                    <td>{{ d.city or '-' }}</td>
+                    <td class="small">{{ d.last_donation_date or 'لم يتبرع بعد' }}</td>
+                    <td>
+                        {% if d.is_eligible %}
+                            <span class="badge bg-success-subtle text-success">مؤهل للتبرع</span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger" title="{{ d.deferral_reason }}">موقوف ({{ d.deferral_reason or 'غير مؤهل' }})</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">لا يوجد متبرعين مسجلين حتى الآن</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- نافذة تسجيل متبرع جديد -->
+<div class="modal fade" id="newDonorModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="POST" action="{{ url_for('add_donor') }}" class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">تسجيل متبرع جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">الاسم الرباعي</label>
+                    <input type="text" name="full_name" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">الرقم القومي (14 رقم)</label>
+                    <input type="text" name="national_id" maxlength="14" pattern="[0-9]{14}" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">فصيلة الدم</label>
+                    <select name="blood_type_id" class="form-select" required>
+                        {% for bt in blood_types %}
+                        <option value="{{ bt.blood_type_id }}">{{ bt.type_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">النوع</label>
+                    <select name="gender" class="form-select" required>
+                        <option value="Male">ذكر</option>
+                        <option value="Female">أنثى</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">تاريخ الميلاد (18-60 سنة)</label>
+                    <input type="date" name="birth_date" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">الوزن (كجم - بحد أدنى 50)</label>
+                    <input type="number" step="0.1" min="50" name="weight_kg" class="form-control" value="70" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">رقم الهاتف</label>
+                    <input type="text" name="phone" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">المدينة</label>
+                    <input type="text" name="city" class="form-control" value="القاهرة">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-brand">حفظ بيانات المتبرع</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- نافذة تسجيل تبرع جديد -->
+<div class="modal fade" id="newDonationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('add_donation') }}" class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">تسجيل عملية تبرع بالدم</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">اختر المتبرع</label>
+                    <select name="donor_id" class="form-select" required>
+                        {% for d in donors if d.is_eligible %}
+                        <option value="{{ d.donor_id }}">{{ d.full_name }} ({{ d.type_name }}) - {{ d.national_id }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">تاريخ السحب</label>
+                        <input type="date" name="collection_date" class="form-control" value="{{ today }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">حجم الكيس (مل)</label>
+                        <input type="number" name="volume_ml" class="form-control" value="450" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">موقع التخزين المؤقت</label>
+                        <input type="text" name="storage_location" class="form-control" value="ثلاجة الحجر الصحي Q-1">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-brand">تأكيد السحب وإرسال للمعمل</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('donorSearch').addEventListener('keyup', function () {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#donorsTable tbody tr').forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

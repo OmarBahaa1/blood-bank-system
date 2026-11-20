@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}سجل المخزون الكامل | {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">سجل أكياس الدم (Inventory)</h3>
+        <p class="text-muted small mb-0">تتبع كامل لدورة حياة كل كيس دم وتواريخ الصلاحية ومواقع التخزين</p>
+    </div>
+    <div>
+        <select id="statusFilter" class="form-select form-select-sm">
+            <option value="ALL">كل الحالات ({{ units | length }})</option>
+            <option value="Available">متاح للصرف (Available)</option>
+            <option value="Quarantine">تحت الفحص (Quarantine)</option>
+            <option value="Used">تم صرفه (Used)</option>
+            <option value="Rejected">مرفوض (Rejected)</option>
+            <option value="Expired">منتهي الصلاحية (Expired)</option>
+        </select>
+    </div>
+</div>
+
+<div class="card card-modern overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-modern table-hover align-middle mb-0" id="inventoryTable">
+            <thead>
+                <tr>
+                    <th>رقم الكيس</th>
+                    <th>الفصيلة</th>
+                    <th>المتبرع</th>
+                    <th>تاريخ السحب</th>
+                    <th>تاريخ الانتهاء</th>
+                    <th>المتبقي</th>
+                    <th>مكان التخزين</th>
+                    <th>الحالة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in units %}
+                <tr data-status="{{ u.status }}">
+                    <td class="fw-bold">#{{ u.unit_id }}</td>
+                    <td><span class="badge bg-danger-subtle text-danger fw-bold px-2 py-1" dir="ltr">{{ u.type_name }}</span></td>
+                    <td>{{ u.donor_name }}</td>
+                    <td class="small">{{ u.collection_date }}</td>
+                    <td class="small">{{ u.expiry_date }}</td>
+                    <td>
+                        {% if u.status == 'Available' %}
+                            {% if u.days_left <= 7 %}
+                                <span class="badge bg-warning text-dark">{{ u.days_left }} يوم</span>
+                            {% else %}
+                                <span class="small text-muted">{{ u.days_left }} يوم</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted small">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ u.storage_location or '-' }}</td>
+                    <td>
+                        {% if u.status == 'Available' %}
+                            <span class="badge bg-success">متاح (Available)</span>
+                        {% elif u.status == 'Quarantine' %}
+                            <span class="badge bg-warning text-dark">حجر صحي (Quarantine)</span>
+                        {% elif u.status == 'Used' %}
+                            <span class="badge bg-secondary">مصروف (Used)</span>
+                        {% elif u.status == 'Rejected' %}
+                            <span class="badge bg-danger">مرفوض (Rejected)</span>
+                        {% else %}
+                            <span class="badge bg-dark">{{ u.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">لا توجد أكياس مسجلة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('statusFilter').addEventListener('change', function () {
+        const val = this.value;
+        document.querySelectorAll('#inventoryTable tbody tr').forEach(row => {
+            row.style.display = (val === 'ALL' || row.dataset.status === val) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

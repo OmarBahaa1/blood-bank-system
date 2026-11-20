@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}طلبات المستشفيات | {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">طلبات المستشفيات والصرف الذكي (FEFO)</h3>
+        <p class="text-muted small mb-0">تلبية الطلبات تلقائياً بأقرب الأكياس انتهاءً للصلاحية مع مراعاة التوافق الطبي</p>
+    </div>
+    <button class="btn btn-brand d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#newRequestModal">
+        <i data-lucide="plus-circle" class="icon-sm"></i> تسجيل طلب مستشفى جديد
+    </button>
+</div>
+
+<h5 class="fw-bold mb-3">الطلبات المفتوحة بانتظار الصرف</h5>
+<div class="card card-modern overflow-hidden mb-5">
+    <div class="table-responsive">
+        <table class="table table-modern table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>المستشفى</th>
+                    <th>المدينة</th>
+                    <th>الفصيلة</th>
+                    <th>المطلوب</th>
+                    <th>المصروف</th>
+                    <th>المتبقي</th>
+                    <th>الأولوية</th>
+                    <th>إجراء الصرف</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in open_requests %}
+                <tr>
+                    <td class="text-muted">{{ req.request_id }}</td>
+                    <td class="fw-semibold">{{ req.hospital_name }}</td>
+                    <td>{{ req.city }}</td>
+                    <td><span class="badge bg-danger px-2 py-1" dir="ltr">{{ req.type_name }}</span></td>
+                    <td>{{ req.units_needed }}</td>
+                    <td class="text-success fw-semibold">{{ req.units_fulfilled }}</td>
+                    <td class="text-danger fw-bold">{{ req.units_missing }}</td>
+                    <td>
+                        {% if req.urgency == 'Urgent' %}
+                            <span class="badge bg-danger badge-urgent">عاجل</span>
+                        {% else %}
+                            <span class="badge bg-secondary">عادي</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('issue_request_units', request_id=req.request_id) }}"
+                              onsubmit="return confirm('تأكيد صرف الأكياس المتاحة لهذا الطلب بنظام FEFO؟');">
+                            <button type="submit" class="btn btn-sm btn-success d-inline-flex align-items-center gap-1">
+                                <i data-lucide="send" style="width:14px;height:14px;"></i> صرف (FEFO)
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">جميع طلبات المستشفيات مكتملة حالياً</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h5 class="fw-bold mb-3">الطلبات المكتملة مؤخراً</h5>
+<div class="card card-modern overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-modern align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>المستشفى</th>
+                    <th>الفصيلة</th>
+                    <th>الكمية المصروفة</th>
+                    <th>تاريخ الطلب</th>
+                    <th>الحالة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in fulfilled_requests %}
+                <tr>
+                    <td class="text-muted">{{ f.request_id }}</td>
+                    <td class="fw-semibold">{{ f.hospital_name }}</td>
+                    <td><span class="badge bg-danger-subtle text-danger" dir="ltr">{{ f.type_name }}</span></td>
+                    <td class="fw-bold text-success">{{ f.units_fulfilled }} / {{ f.units_needed }} كيس</td>
+                    <td class="small">{{ f.request_date }}</td>
+                    <td><span class="badge bg-success">مكتمل (Fulfilled)</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">لا توجد طلبات مكتملة بعد</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- نافذة إضافة طلب مستشفى -->
+<div class="modal fade" id="newRequestModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('add_request') }}" class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">تسجيل طلب دم لمستشفى</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">المستشفى</label>
+                    <select name="hospital_id" class="form-select" required>
+                        {% for h in hospitals %}
+                        <option value="{{ h.hospital_id }}">{{ h.name }} ({{ h.city }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">الفصيلة</label>
+                        <select name="blood_type_id" class="form-select" required>
+                            {% for bt in blood_types %}
+                            <option value="{{ bt.blood_type_id }}">{{ bt.type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">عدد الأكياس</label>
+                        <input type="number" name="units_needed" min="1" max="50" value="2" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">الأولوية</label>
+                        <select name="urgency" class="form-select">
+                            <option value="Normal">عادي (Normal)</option>
+                            <option value="Urgent">عاجل (Urgent)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-brand">إرسال الطلب</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

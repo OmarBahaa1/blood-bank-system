@@ -1,0 +1,132 @@
+:root {
+    --brand-primary: #b91c1c;
+    --brand-dark: #7f1d1d;
+    --brand-light: #ef4444;
+    --brand-soft: #fef2f2;
+    --surface-bg: #f4f6f9;
+    --card-border: #e2e8f0;
+}
+
+body {
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    background-color: var(--surface-bg);
+    color: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* شريط التنقل */
+.brand-navbar {
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-dark));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand-logo-wrap {
+    width: 42px;
+    height: 42px;
+    background: #ffffff;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.nav-link-custom {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 500;
+    padding: 0.5rem 0.9rem !important;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nav-link-custom:hover,
+.nav-link-custom.active {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+/* خلفية الدخول */
+.login-bg {
+    background: radial-gradient(circle at top right, #fee2e2, var(--surface-bg) 60%);
+}
+
+/* الأزرار */
+.btn-brand {
+    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
+    color: #fff;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-brand:hover {
+    background-color: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+/* الكروت والحركة المسموحة */
+.card-modern {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+}
+
+/* شارة فصيلة الدم */
+.blood-badge {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-radius: 10px;
+}
+
+/* نبضة طبية هادية للحالات العاجلة */
+@keyframes urgentPulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45); }
+    70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.badge-urgent {
+    animation: urgentPulse 2s infinite;
+}
+
+/* تحسين الجداول */
+.table-modern thead th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--card-border);
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+.table-modern tbody td {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+    border-color: #f1f5f9;
+}
+
+.icon-sm {
+    width: 17px;
+    height: 17px;
+}
+
+.icon-md {
+    width: 22px;
+    height: 22px;
+}
