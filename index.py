@@ -1,5 +1,6 @@
 import glob
 import os
+import re
 import subprocess
 import sys
 import mysql.connector
@@ -69,11 +70,25 @@ def init_db():
           if not sql:
             continue
           upper_sql = sql.upper().lstrip()
-          if upper_sql.startswith("CREATE DATABASE") or upper_sql.startswith(
-              "DROP DATABASE"
+          if (
+              upper_sql.startswith("CREATE DATABASE")
+              or upper_sql.startswith("DROP DATABASE")
+              or upper_sql.startswith("SET GLOBAL")
           ):
             continue
-          cursor.execute(sql)
+          sql = re.sub(
+              r"DEFINER\s*=\s*`?[^`\s@]+`?\s*@\s*`?[^`\s]+`?",
+              "",
+              sql,
+              flags=re.IGNORECASE,
+          )
+          try:
+            cursor.execute(sql)
+          except mysql.connector.Error as db_err:
+            if db_err.errno in (1050, 1062, 1227, 1304, 1359):
+              logs.append(f"Skipped ({db_err.errno}) in {filename}")
+              continue
+            raise
       conn.commit()
       logs.append(f"OK: {filename}")
 
