@@ -35,6 +35,10 @@ def init_db():
         database=os.getenv("DB_NAME"),
     )
     cursor = conn.cursor()
+    try:
+      cursor.execute("SET SESSION sql_require_primary_key = 0")
+    except Exception:
+      pass
 
     sql_files = sorted(glob.glob(os.path.join(BASE_DIR, "database", "*.sql")))
     logs.append(f"Found {len(sql_files)} SQL files.")
@@ -51,24 +55,25 @@ def init_db():
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
           continue
-        if stripped.upper().startswith("DELIMITER "):
-          delimiter = stripped.split()[1]
+        if stripped.upper().startswith("DELIMITER"):
+          delimiter = stripped[9:].strip()
           continue
         line_fixed = line.replace("`blood_bank`", "`defaultdb`").replace(
             "blood_bank", "defaultdb"
         )
-        upper_line = line_fixed.strip().upper()
-        if upper_line.startswith("CREATE DATABASE") or upper_line.startswith(
-            "DROP DATABASE"
-        ):
-          continue
         statement.append(line_fixed)
         joined = "".join(statement).strip()
         if joined.endswith(delimiter):
           sql = joined[: -len(delimiter)].strip()
-          if sql:
-            cursor.execute(sql)
           statement = []
+          if not sql:
+            continue
+          upper_sql = sql.upper().lstrip()
+          if upper_sql.startswith("CREATE DATABASE") or upper_sql.startswith(
+              "DROP DATABASE"
+          ):
+            continue
+          cursor.execute(sql)
       conn.commit()
       logs.append(f"OK: {filename}")
 
