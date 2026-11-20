@@ -35,7 +35,7 @@ def init_db():
         password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_NAME"),
     )
-    cursor = conn.cursor()
+    cursor = conn.cursor(buffered=True)
     try:
       cursor.execute("SET SESSION sql_require_primary_key = 0")
     except Exception:
@@ -84,9 +84,13 @@ def init_db():
           )
           try:
             cursor.execute(sql)
+            if cursor.with_rows:
+              cursor.fetchall()
+            while cursor.nextset():
+              if cursor.with_rows:
+                cursor.fetchall()
           except mysql.connector.Error as db_err:
             if db_err.errno in (1050, 1062, 1227, 1304, 1359):
-              logs.append(f"Skipped ({db_err.errno}) in {filename}")
               continue
             raise
       conn.commit()
