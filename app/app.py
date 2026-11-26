@@ -188,6 +188,44 @@ def add_donor():
     weight_kg = request.form.get("weight_kg")
     blood_type_id = request.form.get("blood_type_id")
 
+    # شرط العمر (18-60 سنة مكتملة) يُفحص هنا قبل الحفظ؛ السيرفر هو المرجع وليس الواجهة.
+    # نفس منطق TIMESTAMPDIFF(YEAR, birth_date, ...) في trigger جدول Blood_Units.
+    from datetime import datetime
+
+    def age_words(n):
+        if n == 0:
+            return "أقل من سنة"
+        if n == 1:
+            return "سنة واحدة"
+        if n == 2:
+            return "سنتان"
+        if 3 <= n % 100 <= 10:
+            return f"{n} سنوات"
+        return f"{n} سنة"
+
+    if not birth_date:
+        flash("أدخل تاريخ ميلاد المتبرع.", "danger")
+        return redirect(url_for("donors"))
+    try:
+        born = datetime.strptime(birth_date, "%Y-%m-%d").date()
+    except ValueError:
+        flash("تاريخ الميلاد غير صحيح. أدخل تاريخًا حقيقيًا (اليوم والشهر والسنة).", "danger")
+        return redirect(url_for("donors"))
+
+    today = date.today()
+    if born > today:
+        flash("تاريخ الميلاد لم يأتِ بعد. راجع التاريخ.", "danger")
+        return redirect(url_for("donors"))
+
+    age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    if age < 18 or age > 60:
+        flash(
+            f"المتبرع عمره {age_words(age)}. التبرع بالدم متاح من عمر 18 إلى 60 سنة "
+            "حفاظًا على سلامة المتبرع. تأكد من تاريخ الميلاد.",
+            "danger",
+        )
+        return redirect(url_for("donors"))
+
     conn = get_connection()
     cursor = conn.cursor()
     try:

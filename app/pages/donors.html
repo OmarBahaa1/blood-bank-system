@@ -147,8 +147,9 @@
                     </select>
                 </div>
                 <div class="col-md-4 field" data-dob-split>
-                    <label class="form-label" for="dn_birth_date">تاريخ الميلاد (18-60 سنة) <span class="req" aria-hidden="true">*</span></label>
-                    <input type="date" id="dn_birth_date" name="birth_date" class="form-control" required>
+                    <label class="form-label" for="dn_birth_date">تاريخ الميلاد <span class="req" aria-hidden="true">*</span></label>
+                    <small class="form-hint dob-hint" id="dn_birth_date_hint">العمر المسموح: من 18 إلى 60 سنة</small>
+                    <input type="date" id="dn_birth_date" name="birth_date" class="form-control" aria-describedby="dn_birth_date_hint" required>
                 </div>
                 <div class="col-md-4 field">
                     <label class="form-label" for="dn_weight">الوزن (كجم - بحد أدنى 50) <span class="req" aria-hidden="true">*</span></label>

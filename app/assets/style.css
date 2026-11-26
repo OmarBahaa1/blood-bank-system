@@ -1352,6 +1352,36 @@ a:focus-visible, button:focus-visible { border-radius: var(--r-sm); }
     font-weight: 500;
     line-height: 1.5;
 }
+/* تنبيه العمر (18-60): الحالة مكتوبة نصاً + أيقونة، وليست باللون فقط */
+.dob-hint { margin-top: -0.1rem; margin-bottom: 0.4rem; }
+.dob-msg.is-ok,
+.dob-msg.is-bad {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: var(--r-md);
+    font-family: var(--font-ar);
+}
+.dob-msg[hidden] { display: none; }
+.dob-msg.is-ok  { color: var(--ok-fg);  background: var(--ok-bg); }
+.dob-msg.is-bad { color: var(--bad-fg); background: var(--bad-bg); }
+.dob-msg.is-bad::before {
+    content: "!";
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.1rem;
+    border-radius: 50%;
+    background: var(--bad-fg);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+}
+.form-control[type="date"][aria-invalid="true"] { border-color: var(--bad-dot); background-color: #fffafa; }
 
 
 /* ==========================================================
