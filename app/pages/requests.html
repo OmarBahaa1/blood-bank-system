@@ -1,21 +1,70 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}طلبات المستشفيات | {{ project_name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-    <div>
-        <h3 class="fw-bold mb-1">طلبات المستشفيات والصرف الذكي (FEFO)</h3>
-        <p class="text-muted small mb-0">تلبية الطلبات تلقائياً بأقرب الأكياس انتهاءً للصلاحية مع مراعاة التوافق الطبي</p>
+{# أرقام ملخصة من نفس القوائم الموجودة في الصفحة (عرض فقط) #}
+{% set n_open    = open_requests | length %}
+{% set n_urgent  = open_requests | selectattr('urgency', 'equalto', 'Urgent') | list | length %}
+{% set n_missing = open_requests | sum(attribute='units_missing') %}
+{% set n_done    = fulfilled_requests | length %}
+
+<section class="page-hero rise" aria-labelledby="pageTitle">
+    <img class="hero-watermark" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+    <img class="hero-watermark wm-sm" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+    <div class="hero-text">
+        <div class="hero-eyebrow"><i data-lucide="ambulance"></i> الصرف للمستشفيات</div>
+        <h1 class="hero-title" id="pageTitle">
+            طلبات المستشفيات والصرف الذكي
+            <span class="tag-badge" lang="en" title="الأقرب انتهاءً للصلاحية يُصرف أولاً (First Expired, First Out)">FEFO</span>
+        </h1>
+        <p class="hero-sub">تلبية الطلبات تلقائياً بأقرب الأكياس انتهاءً للصلاحية مع مراعاة التوافق الطبي</p>
     </div>
-    <button class="btn btn-brand d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#newRequestModal">
-        <i data-lucide="plus-circle" class="icon-sm"></i> تسجيل طلب مستشفى جديد
-    </button>
+    <div class="hero-actions">
+        <button class="btn btn-brand d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#newRequestModal">
+            <i data-lucide="plus-circle" class="icon-sm"></i> تسجيل طلب مستشفى جديد
+        </button>
+    </div>
+</section>
+
+<div class="kpi-strip" role="list" aria-label="ملخص الطلبات">
+    <div class="kpi tone-info rise" style="--i:1" role="listitem">
+        <span class="kpi-icon"><i data-lucide="inbox"></i></span>
+        <span class="kpi-value">{{ n_open }}</span>
+        <span class="kpi-label">طلبات مفتوحة</span>
+        <span class="kpi-note">بانتظار الصرف</span>
+    </div>
+    <div class="kpi tone-bad rise" style="--i:2" role="listitem">
+        <span class="kpi-icon"><i data-lucide="siren"></i></span>
+        <span class="kpi-value">{{ n_urgent }}</span>
+        <span class="kpi-label">طلبات عاجلة</span>
+        <span class="kpi-note">من الطلبات المفتوحة</span>
+    </div>
+    <div class="kpi tone-warn rise" style="--i:3" role="listitem">
+        <span class="kpi-icon"><i data-lucide="package-open"></i></span>
+        <span class="kpi-value">{{ n_missing }}</span>
+        <span class="kpi-label">أكياس متبقية للصرف</span>
+        <span class="kpi-note">مجموع المتبقي في الطلبات المفتوحة</span>
+    </div>
+    <div class="kpi tone-ok rise" style="--i:4" role="listitem">
+        <span class="kpi-icon"><i data-lucide="circle-check"></i></span>
+        <span class="kpi-value">{{ n_done }}</span>
+        <span class="kpi-label">مكتملة مؤخراً</span>
+        <span class="kpi-note">المعروضة في السجل بالأسفل</span>
+    </div>
 </div>
 
-<h5 class="fw-bold mb-3">الطلبات المفتوحة بانتظار الصرف</h5>
-<div class="card card-modern overflow-hidden mb-5">
+<section class="panel rise" style="--i:3" aria-labelledby="openTitle">
+    <div class="panel-head tone-info">
+        <span class="panel-icon"><i data-lucide="clipboard-list"></i></span>
+        <div class="panel-titles">
+            <h2 class="panel-title" id="openTitle">الطلبات المفتوحة بانتظار الصرف</h2>
+            <p class="panel-sub">الطلبات العاجلة مميزة بشريط أحمر</p>
+        </div>
+        <span class="panel-count" title="عدد الطلبات المفتوحة">{{ n_open }}</span>
+    </div>
     <div class="table-responsive">
-        <table class="table table-modern table-hover align-middle mb-0">
+        <table class="table table-soft table-hover align-middle mb-0">
             <thead>
                 <tr>
                     <th>#</th>
@@ -31,19 +80,19 @@
             </thead>
             <tbody>
                 {% for req in open_requests %}
-                <tr>
-                    <td class="text-muted">{{ req.request_id }}</td>
-                    <td class="fw-semibold">{{ req.hospital_name }}</td>
+                <tr class="{{ 'accent-urgent' if req.urgency == 'Urgent' else 'accent-normal' }}">
+                    <td class="cell-id">{{ req.request_id }}</td>
+                    <td class="cell-strong">{{ req.hospital_name }}</td>
                     <td>{{ req.city }}</td>
-                    <td><span class="badge bg-danger px-2 py-1" dir="ltr">{{ req.type_name }}</span></td>
-                    <td>{{ req.units_needed }}</td>
-                    <td class="text-success fw-semibold">{{ req.units_fulfilled }}</td>
-                    <td class="text-danger fw-bold">{{ req.units_missing }}</td>
+                    <td>{{ m.drop_badge(req.type_name) }}</td>
+                    <td><span class="qty">{{ req.units_needed }} <small>كيس</small></span></td>
+                    <td class="num-good">{{ req.units_fulfilled }}</td>
+                    <td class="num-bad">{{ req.units_missing }}</td>
                     <td>
                         {% if req.urgency == 'Urgent' %}
-                            <span class="badge bg-danger badge-urgent">عاجل</span>
+                            <span class="status-pill st-rejected badge-urgent">عاجل</span>
                         {% else %}
-                            <span class="badge bg-secondary">عادي</span>
+                            <span class="status-pill st-neutral">عادي</span>
                         {% endif %}
                     </td>
                     <td>
@@ -57,18 +106,29 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">جميع طلبات المستشفيات مكتملة حالياً</td>
+                    <td colspan="9" class="empty-cell">
+                        <div class="empty-state">
+                            <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+                            <span class="empty-title">جميع طلبات المستشفيات مكتملة حالياً</span>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
+</section>
 
-<h5 class="fw-bold mb-3">الطلبات المكتملة مؤخراً</h5>
-<div class="card card-modern overflow-hidden">
+<section class="panel rise" style="--i:4" aria-labelledby="doneTitle">
+    <div class="panel-head tone-ok">
+        <span class="panel-icon"><i data-lucide="history"></i></span>
+        <div class="panel-titles">
+            <h2 class="panel-title" id="doneTitle">الطلبات المكتملة مؤخراً</h2>
+        </div>
+        <span class="panel-count" title="عدد الطلبات المكتملة المعروضة">{{ n_done }}</span>
+    </div>
     <div class="table-responsive">
-        <table class="table table-modern align-middle mb-0">
+        <table class="table table-soft align-middle mb-0">
             <thead>
                 <tr>
                     <th>#</th>
@@ -81,57 +141,65 @@
             </thead>
             <tbody>
                 {% for f in fulfilled_requests %}
-                <tr>
-                    <td class="text-muted">{{ f.request_id }}</td>
-                    <td class="fw-semibold">{{ f.hospital_name }}</td>
-                    <td><span class="badge bg-danger-subtle text-danger" dir="ltr">{{ f.type_name }}</span></td>
-                    <td class="fw-bold text-success">{{ f.units_fulfilled }} / {{ f.units_needed }} كيس</td>
+                <tr class="accent-done">
+                    <td class="cell-id">{{ f.request_id }}</td>
+                    <td class="cell-strong">{{ f.hospital_name }}</td>
+                    <td>{{ m.drop_badge(f.type_name) }}</td>
+                    <td class="num-good">{{ f.units_fulfilled }} / {{ f.units_needed }} كيس</td>
                     <td class="small">{{ f.request_date }}</td>
-                    <td><span class="badge bg-success">مكتمل (Fulfilled)</span></td>
+                    <td><span class="status-pill st-available">مكتمل (Fulfilled)</span></td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">لا توجد طلبات مكتملة بعد</td>
+                    <td colspan="6" class="empty-cell">
+                        <div class="empty-state">
+                            <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+                            <span class="empty-title">لا توجد طلبات مكتملة بعد</span>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
+</section>
 
 <!-- نافذة إضافة طلب مستشفى -->
-<div class="modal fade" id="newRequestModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ url_for('add_request') }}" class="modal-content border-0 shadow">
+<div class="modal fade" id="newRequestModal" tabindex="-1" aria-labelledby="newRequestTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <form method="POST" action="{{ url_for('add_request') }}" class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">تسجيل طلب دم لمستشفى</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h2 class="modal-title fs-5" id="newRequestTitle">
+                    <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true"> تسجيل طلب دم لمستشفى
+                </h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">المستشفى</label>
-                    <select name="hospital_id" class="form-select" required>
+                <div class="mb-3 field">
+                    <label class="form-label" for="rq_hospital">المستشفى <span class="req" aria-hidden="true">*</span></label>
+                    <select id="rq_hospital" name="hospital_id" class="form-select" required>
                         {% for h in hospitals %}
                         <option value="{{ h.hospital_id }}">{{ h.name }} ({{ h.city }})</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold">الفصيلة</label>
-                        <select name="blood_type_id" class="form-select" required>
+                    <div class="col-md-4 field">
+                        <label class="form-label" for="rq_blood_type">الفصيلة <span class="req" aria-hidden="true">*</span></label>
+                        <select id="rq_blood_type" name="blood_type_id" class="form-select" required>
                             {% for bt in blood_types %}
-                            <option value="{{ bt.blood_type_id }}">{{ bt.type_name }}</option>
+                            <option value="{{ bt.blood_type_id }}">{{ m.bt_text(bt.type_name) }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold">عدد الأكياس</label>
-                        <input type="number" name="units_needed" min="1" max="50" value="2" class="form-control" required>
+                    <div class="col-md-4 field">
+                        <label class="form-label" for="rq_units">عدد الأكياس <span class="req" aria-hidden="true">*</span></label>
+                        <input type="number" id="rq_units" name="units_needed" min="1" max="50" value="2" class="form-control" aria-describedby="rq_units_hint" required>
+                        <small class="form-hint" id="rq_units_hint">من 1 إلى 50</small>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold">الأولوية</label>
-                        <select name="urgency" class="form-select">
+                    <div class="col-md-4 field">
+                        <label class="form-label" for="rq_urgency">الأولوية</label>
+                        <select id="rq_urgency" name="urgency" class="form-select">
                             <option value="Normal">عادي (Normal)</option>
                             <option value="Urgent">عاجل (Urgent)</option>
                         </select>

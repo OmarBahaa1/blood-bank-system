@@ -3,35 +3,45 @@
 {% block body_class %}login-bg{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-center" style="min-height: 82vh;">
-    <div class="col-md-5 col-lg-4">
-        <div class="card card-modern shadow-lg border-0">
-            <div class="card-body p-4 p-md-5">
-                <div class="text-center mb-4">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-white shadow-sm rounded-4 mb-3 p-2" style="width: 76px; height: 76px;">
-                        <img src="{{ url_for('static', filename='logo.svg') }}" alt="Wateen Logo" width="52" height="52">
-                    </div>
-                    <h3 class="fw-bold text-danger mb-1">{{ project_name }}</h3>
-                    <p class="text-muted small mb-0">{{ project_tagline }}</p>
-                </div>
+{% set name_parts = project_name.split('|') %}
+{% set name_ar = name_parts[0] | trim %}
+{% set name_en = (name_parts[1] | trim) if name_parts | length > 1 else '' %}
+<div class="login-wrap">
+    <div class="card card-modern login-card">
+        <div class="login-hero">
+            <img class="hero-drop" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+            <img class="hero-drop-sm" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+            <span class="brand-tile">
+                <img src="{{ url_for('static', filename='logo.svg') }}" alt="شعار وتين" width="72" height="72">
+            </span>
+            <h1 class="wordmark m-0">
+                <span class="wordmark-ar">{{ name_ar }}</span>
+                {% if name_en %}<span class="wordmark-en" lang="en">{{ name_en }}</span>{% endif %}
+            </h1>
+            <p class="brand-tagline mb-0">{{ project_tagline }}</p>
+        </div>
 
-                <form method="POST">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">اسم المستخدم</label>
-                        <input type="text" name="username" class="form-control form-control-lg fs-6" placeholder="مثال: admin" required autofocus>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold small">كلمة المرور</label>
-                        <input type="password" name="password" class="form-control form-control-lg fs-6" placeholder="••••••••" required>
-                    </div>
-                    <button type="submit" class="btn btn-brand w-100 py-2.5 fw-bold">دخول إلى النظام</button>
-                </form>
+        <div class="login-body">
+            <h2 class="login-title">تسجيل الدخول</h2>
+            <p class="text-muted small mb-4">ادخل ببيانات حسابك للوصول إلى لوحة الطاقم</p>
 
-                <hr class="my-4">
-                <div class="small text-muted text-center">
-                    <div class="mb-1">حسابات التجربة:</div>
-                    <code>admin / admin123</code> • <code>lab / lab123</code> • <code>staff / staff123</code>
+            <form method="POST">
+                <div class="mb-3 field">
+                    <label class="form-label" for="loginUsername">اسم المستخدم</label>
+                    <input type="text" id="loginUsername" name="username" class="form-control" placeholder="مثال: admin" autocomplete="username" required autofocus>
                 </div>
+                <div class="mb-4 field">
+                    <label class="form-label" for="loginPassword">كلمة المرور</label>
+                    <input type="password" id="loginPassword" name="password" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn-brand w-100 py-2 d-inline-flex align-items-center justify-content-center gap-2">
+                    <i data-lucide="log-in" class="icon-sm"></i> دخول إلى النظام
+                </button>
+            </form>
+
+            <div class="demo-box">
+                <div class="mb-1 fw-bold">حسابات التجربة:</div>
+                <code>admin / admin123</code> • <code>lab / lab123</code> • <code>staff / staff123</code>
             </div>
         </div>
     </div>

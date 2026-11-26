@@ -3,110 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#7a0e14">
     <title>{% block title %}{{ project_name }}{% endblock %}</title>
+    {# تطبيق حالة طي القائمة المحفوظة قبل الرسم لتجنب الوميض (عرض فقط) #}
+    <script>try{if(localStorage.getItem('wateen.sidebar')==='collapsed'){document.documentElement.classList.add('sb-collapsed');}}catch(e){}</script>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="{% block body_class %}{% endblock %}">
+{# تقسيم اسم المشروع (عرض فقط): الجزء العربي بخط IBM Plex Sans Arabic والإنجليزي بخط Newsreader #}
+{% set name_parts = project_name.split('|') %}
+{% set name_ar = name_parts[0] | trim %}
+{% set name_en = (name_parts[1] | trim) if name_parts | length > 1 else '' %}
+{% set is_logged_in = session.get('user_id') %}
 
-{% if session.get('user_id') %}
-<nav class="navbar navbar-expand-lg navbar-dark brand-navbar shadow-sm mb-4">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard') }}">
-            <span class="brand-logo-wrap">
-                <img src="{{ url_for('static', filename='logo.svg') }}" alt="Wateen Logo" width="28" height="28">
-            </span>
-            <div>
-                <div class="fw-bold lh-1">{{ project_name }}</div>
-                <small class="opacity-75 fw-normal" style="font-size: 0.72rem;">{{ project_tagline }}</small>
-            </div>
-        </a>
+<a class="skip-link" href="#main">تخطَّ إلى المحتوى</a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
-            <span class="navbar-toggler-icon"></span>
+<div class="{{ 'app-shell' if is_logged_in else 'auth-shell' }}">
+
+{% if is_logged_in %}
+    <!-- الشريط العلوي: يظهر تحت 992px فقط -->
+    <header class="app-topbar d-lg-none">
+        <button class="icon-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar"
+                aria-controls="appSidebar" aria-expanded="false" aria-label="فتح القائمة">
+            <i data-lucide="menu" class="icon-md"></i>
         </button>
-
-        <div class="collapse navbar-collapse" id="mainNav">
-            <ul class="navbar-nav me-auto ms-3 gap-1">
-                <li class="nav-item">
-                    <a class="nav-link nav-link-custom {% if request.endpoint == 'dashboard' %}active{% endif %}"
-                       href="{{ url_for('dashboard') }}">
-                        <i data-lucide="layout-dashboard" class="icon-sm"></i> لوحة التحكم
-                    </a>
-                </li>
-
-                {% if session.get('role') in ['Admin', 'Bank_Staff'] %}
-                <li class="nav-item">
-                    <a class="nav-link nav-link-custom {% if request.endpoint == 'donors' %}active{% endif %}"
-                       href="{{ url_for('donors') }}">
-                        <i data-lucide="heart-handshake" class="icon-sm"></i> المتبرعين
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link nav-link-custom {% if request.endpoint == 'requests_page' %}active{% endif %}"
-                       href="{{ url_for('requests_page') }}">
-                        <i data-lucide="ambulance" class="icon-sm"></i> طلبات المستشفيات
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link nav-link-custom {% if request.endpoint == 'inventory' %}active{% endif %}"
-                       href="{{ url_for('inventory') }}">
-                        <i data-lucide="boxes" class="icon-sm"></i> المخزون
-                    </a>
-                </li>
-                {% endif %}
-
-                {% if session.get('role') in ['Admin', 'Lab_Tech'] %}
-                <li class="nav-item">
-                    <a class="nav-link nav-link-custom {% if request.endpoint == 'lab_screening' %}active{% endif %}"
-                       href="{{ url_for('lab_screening') }}">
-                        <i data-lucide="microscope" class="icon-sm"></i> المعمل
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-
-            <div class="d-flex align-items-center gap-3 text-white mt-2 mt-lg-0">
-                <span class="small">أهلاً، <strong>{{ session.get('full_name') }}</strong>
-                    <span class="badge bg-white text-danger ms-1">{{ session.get('role') }}</span>
+        <a class="brand-link" href="{{ url_for('dashboard') }}">
+            <span class="brand-tile">
+                <img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="40" height="40">
+            </span>
+            <span class="brand-text">
+                <span class="wordmark">
+                    <span class="wordmark-ar">{{ name_ar }}</span>
+                    {% if name_en %}<span class="wordmark-en" lang="en">{{ name_en }}</span>{% endif %}
                 </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm d-inline-flex align-items-center gap-1">
-                    <i data-lucide="log-out" style="width:15px;height:15px;"></i> خروج
+            </span>
+        </a>
+        <a href="{{ url_for('logout') }}" class="icon-btn" aria-label="تسجيل الخروج" title="تسجيل الخروج">
+            <i data-lucide="log-out" class="icon-sm"></i>
+        </a>
+    </header>
+
+    <!-- الشريط الجانبي: على اليمين وقابل للطي في الشاشات الكبيرة، ودرج منزلق في الصغيرة -->
+    <aside class="app-sidebar offcanvas-lg offcanvas-start" id="appSidebar" tabindex="-1" aria-label="القائمة الرئيسية">
+        <div class="sidebar-body offcanvas-body">
+            <div class="sidebar-head">
+                <a class="brand-link" href="{{ url_for('dashboard') }}" title="{{ project_name }}">
+                    <span class="brand-tile">
+                        <img src="{{ url_for('static', filename='logo.svg') }}" alt="شعار وتين" width="48" height="48">
+                    </span>
+                    <span class="brand-text">
+                        <span class="wordmark">
+                            <span class="wordmark-ar">{{ name_ar }}</span>
+                            {% if name_en %}<span class="wordmark-en" lang="en">{{ name_en }}</span>{% endif %}
+                        </span>
+                        <span class="brand-tagline">{{ project_tagline }}</span>
+                    </span>
                 </a>
+                <button type="button" class="icon-btn sidebar-close d-lg-none" data-bs-dismiss="offcanvas"
+                        data-bs-target="#appSidebar" aria-label="إغلاق القائمة">
+                    <i data-lucide="x" class="icon-md"></i>
+                </button>
+            </div>
+
+            <nav class="side-nav-wrap" aria-label="التنقل الرئيسي">
+                <div class="sidebar-label">القائمة</div>
+                <ul class="side-nav">
+                    <li>
+                        <a class="side-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
+                           href="{{ url_for('dashboard') }}" title="لوحة التحكم" aria-label="لوحة التحكم"
+                           {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>
+                            <span class="side-icon"><i data-lucide="layout-dashboard"></i></span>
+                            <span class="side-text">لوحة التحكم</span>
+                        </a>
+                    </li>
+
+                    {% if session.get('role') in ['Admin', 'Bank_Staff'] %}
+                    <li>
+                        <a class="side-link {% if request.endpoint == 'donors' %}active{% endif %}"
+                           href="{{ url_for('donors') }}" title="المتبرعين" aria-label="المتبرعين"
+                           {% if request.endpoint == 'donors' %}aria-current="page"{% endif %}>
+                            <span class="side-icon"><i data-lucide="heart-handshake"></i></span>
+                            <span class="side-text">المتبرعين</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="side-link {% if request.endpoint == 'requests_page' %}active{% endif %}"
+                           href="{{ url_for('requests_page') }}" title="طلبات المستشفيات" aria-label="طلبات المستشفيات"
+                           {% if request.endpoint == 'requests_page' %}aria-current="page"{% endif %}>
+                            <span class="side-icon"><i data-lucide="ambulance"></i></span>
+                            <span class="side-text">طلبات المستشفيات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="side-link {% if request.endpoint == 'inventory' %}active{% endif %}"
+                           href="{{ url_for('inventory') }}" title="المخزون" aria-label="المخزون"
+                           {% if request.endpoint == 'inventory' %}aria-current="page"{% endif %}>
+                            <span class="side-icon"><i data-lucide="boxes"></i></span>
+                            <span class="side-text">المخزون</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if session.get('role') in ['Admin', 'Lab_Tech'] %}
+                    <li>
+                        <a class="side-link {% if request.endpoint == 'lab_screening' %}active{% endif %}"
+                           href="{{ url_for('lab_screening') }}" title="المعمل" aria-label="المعمل"
+                           {% if request.endpoint == 'lab_screening' %}aria-current="page"{% endif %}>
+                            <span class="side-icon"><i data-lucide="microscope"></i></span>
+                            <span class="side-text">المعمل</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
+            <div class="sidebar-foot">
+                <button type="button" class="side-link side-collapse d-none d-lg-flex" id="sidebarCollapse"
+                        aria-controls="appSidebar" aria-expanded="true" aria-label="طي القائمة" title="طي القائمة">
+                    <span class="side-icon"><i data-lucide="chevrons-right"></i></span>
+                    <span class="side-text">طي القائمة</span>
+                </button>
+
+                <div class="user-card">
+                    <div class="user-row">
+                        <span class="user-avatar" title="{{ session.get('full_name') }} — {{ session.get('role') }}" aria-hidden="true">
+                            <i data-lucide="user-round" class="icon-md"></i>
+                        </span>
+                        <div class="user-meta min-w-0">
+                            <div class="user-name">أهلاً، {{ session.get('full_name') }}</div>
+                            <span class="user-role">{{ session.get('role') }}</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="btn-logout" title="تسجيل الخروج" aria-label="تسجيل الخروج">
+                        <i data-lucide="log-out"></i> <span class="logout-text">تسجيل الخروج</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-</nav>
+    </aside>
 {% endif %}
 
-<main class="container pb-5 flex-grow-1">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-    {% endwith %}
+    <div class="app-content">
+        <main id="main" class="app-main" tabindex="-1">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+                    </div>
+                {% endfor %}
+            {% endwith %}
 
-    {% block content %}{% endblock %}
-</main>
+            {% block content %}{% endblock %}
+        </main>
 
-<footer class="bg-white border-top py-3 mt-auto text-center text-muted small">
-    <div class="container">
-        <strong>{{ project_name }}</strong> — {{ project_tagline }} © 2026
+        <footer class="app-footer">
+            <strong>{{ project_name }}</strong> — {{ project_tagline }} © 2026
+        </footer>
     </div>
-</footer>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
     lucide.createIcons();
 </script>
+<script src="{{ url_for('static', filename='ui.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

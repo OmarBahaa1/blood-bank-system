@@ -1,18 +1,19 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}لوحة التحكم | {{ project_name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="page-head">
     <div>
-        <h3 class="fw-bold mb-1">لوحة التحكم الرئيسية</h3>
-        <p class="text-muted small mb-0">نظرة لحظية على مخزون الدم، الحجر الصحي، وطلبات المستشفيات</p>
+        <h1 class="page-title">لوحة التحكم الرئيسية</h1>
+        <p class="page-subtitle">نظرة لحظية على مخزون الدم، الحجر الصحي، وطلبات المستشفيات</p>
     </div>
     {% if session.get('role') in ['Admin', 'Bank_Staff'] %}
-    <div class="d-flex gap-2">
-        <a href="{{ url_for('donors') }}" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1">
+    <div class="page-actions">
+        <a href="{{ url_for('donors') }}" class="btn btn-outline-danger d-inline-flex align-items-center gap-2">
             <i data-lucide="user-plus" class="icon-sm"></i> تبرع جديد
         </a>
-        <a href="{{ url_for('requests_page') }}" class="btn btn-brand btn-sm d-inline-flex align-items-center gap-1">
+        <a href="{{ url_for('requests_page') }}" class="btn btn-brand d-inline-flex align-items-center gap-2">
             <i data-lucide="ambulance" class="icon-sm"></i> صرف طلبات
         </a>
     </div>
@@ -21,92 +22,92 @@
 
 <!-- ملخص الأرقام السريعة -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="card card-modern card-hover h-100 border-start border-4 border-success">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
-                    <span>إجمالي الأكياس المتاحة</span>
-                    <i data-lucide="droplet" class="icon-sm text-success"></i>
-                </div>
-                <div class="fs-2 fw-bold text-success">{{ total_available }}</div>
+    <div class="col-6 col-xl-3">
+        <div class="card card-modern card-hover stat-card tone-ok">
+            <div class="stat-top">
+                <span class="stat-label">إجمالي الأكياس المتاحة</span>
+                <span class="stat-icon"><i data-lucide="droplet"></i></span>
             </div>
+            <div class="stat-value">{{ total_available }}</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card card-modern card-hover h-100 border-start border-4 border-warning">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
-                    <span>أكياس تحت الفحص</span>
-                    <i data-lucide="flask-conical" class="icon-sm text-warning"></i>
-                </div>
-                <div class="fs-2 fw-bold text-warning">{{ quarantine_count }}</div>
+    <div class="col-6 col-xl-3">
+        <div class="card card-modern card-hover stat-card tone-warn">
+            <div class="stat-top">
+                <span class="stat-label">أكياس تحت الفحص</span>
+                <span class="stat-icon"><i data-lucide="flask-conical"></i></span>
             </div>
+            <div class="stat-value">{{ quarantine_count }}</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card card-modern card-hover h-100 border-start border-4 border-danger">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
-                    <span>فصائل بها عجز حاد</span>
-                    <i data-lucide="alert-triangle" class="icon-sm text-danger"></i>
-                </div>
-                <div class="fs-2 fw-bold text-danger">{{ shortages | length }}</div>
+    <div class="col-6 col-xl-3">
+        <div class="card card-modern card-hover stat-card tone-bad">
+            <div class="stat-top">
+                <span class="stat-label">فصائل بها عجز حاد</span>
+                <span class="stat-icon"><i data-lucide="alert-triangle"></i></span>
             </div>
+            <div class="stat-value">{{ shortages | length }}</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card card-modern card-hover h-100 border-start border-4 border-primary">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
-                    <span>طلبات مفتوحة</span>
-                    <i data-lucide="hospital" class="icon-sm text-primary"></i>
-                </div>
-                <div class="fs-2 fw-bold text-primary">{{ open_requests | length }}</div>
+    <div class="col-6 col-xl-3">
+        <div class="card card-modern card-hover stat-card tone-info">
+            <div class="stat-top">
+                <span class="stat-label">طلبات مفتوحة</span>
+                <span class="stat-icon"><i data-lucide="hospital"></i></span>
             </div>
+            <div class="stat-value">{{ open_requests | length }}</div>
         </div>
     </div>
 </div>
 
 <!-- تنبيهات العجز والصلاحية -->
 {% if shortages %}
-<div class="alert alert-danger border-0 shadow-sm d-flex align-items-center flex-wrap gap-2">
-    <i data-lucide="alert-octagon" class="icon-sm"></i>
-    <strong>تنبيه عجز في المخزون:</strong>
-    {% for s in shortages %}
-        <span class="badge bg-danger">{{ s.type_name }} (عجز {{ s.balance | abs }} كيس)</span>
-    {% endfor %}
+<div class="alert alert-danger notice" role="status">
+    <i data-lucide="alert-octagon" class="icon-sm notice-icon"></i>
+    <div class="notice-body">
+        <strong>تنبيه عجز في المخزون:</strong>
+        {% for s in shortages %}
+            <span class="notice-chip">{{ m.bt(s.type_name) }} (عجز {{ s.balance | abs }} كيس)</span>
+        {% endfor %}
+    </div>
 </div>
 {% endif %}
 
 {% if expiring_soon %}
-<div class="alert alert-warning border-0 shadow-sm d-flex align-items-center flex-wrap gap-2">
-    <i data-lucide="clock" class="icon-sm"></i>
-    <strong>أكياس تنتهي صلاحيتها خلال 7 أيام (أولوية FEFO):</strong>
-    {% for u in expiring_soon %}
-        <span class="badge bg-dark">كيس #{{ u.unit_id }} ({{ u.type_name }}) - متبقي {{ u.days_left }} يوم</span>
-    {% endfor %}
+<div class="alert alert-warning notice" role="status">
+    <i data-lucide="clock" class="icon-sm notice-icon"></i>
+    <div class="notice-body">
+        <strong>أكياس تنتهي صلاحيتها خلال 7 أيام (أولوية <span lang="en">FEFO</span>):</strong>
+        {% for u in expiring_soon %}
+            <span class="notice-chip">كيس #{{ u.unit_id }} ({{ m.bt(u.type_name) }}) - متبقي {{ u.days_left }} يوم</span>
+        {% endfor %}
+    </div>
 </div>
 {% endif %}
 
 <!-- المخزون حسب الفصيلة + الرسم البياني -->
-<div class="row g-4 mt-2 mb-4">
+<div class="row g-4 mt-1 mb-2">
     <div class="col-lg-7">
-        <h5 class="fw-bold mb-3">المخزون المتاح حسب الفصيلة</h5>
+        <h2 class="section-title">المخزون المتاح حسب الفصيلة</h2>
         <div class="row g-3">
             {% for item in stock_by_type %}
             <div class="col-6 col-sm-3">
-                <div class="card card-modern card-hover text-center h-100">
-                    <div class="card-body py-3">
-                        <span class="badge bg-danger-subtle text-danger blood-badge px-3 py-2 mb-2" dir="ltr">{{ item.type_name }}</span>
-                        <div class="fs-3 fw-bold">{{ item.units_available }} <span class="fs-6 fw-normal text-muted">كيس</span></div>
-                        <div class="small text-muted mt-1" style="font-size: 0.75rem;">
-                            {% if item.nearest_expiry %}
-                                أقرب انتهاء: {{ item.nearest_expiry }}
-                            {% else %}
-                                لا يوجد رصيد
-                            {% endif %}
-                        </div>
-                    </div>
+                <div class="card card-modern card-hover stock-card">
+                    {{ m.drop_badge(item.type_name, 'db-lg') }}
+                    <div class="stock-num">{{ item.units_available }}</div>
+                    <div class="stock-unit">كيس متاح</div>
+                    {% if item.nearest_expiry %}
+                        <div class="stock-meta">أقرب انتهاء: <span class="text-nowrap" dir="ltr" style="unicode-bidi:isolate">{{ item.nearest_expiry }}</span></div>
+                    {% else %}
+                        <div class="stock-meta is-empty">لا يوجد رصيد</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12">
+                <div class="card card-modern empty-state">
+                    <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+                    <span class="empty-title">لا توجد بيانات مخزون لعرضها</span>
                 </div>
             </div>
             {% endfor %}
@@ -114,21 +115,21 @@
     </div>
 
     <div class="col-lg-5">
-        <h5 class="fw-bold mb-3">التوزيع البصري للمخزون</h5>
+        <h2 class="section-title">التوزيع البصري للمخزون</h2>
         <div class="card card-modern p-3">
-            <div id="stockChart"></div>
+            <div id="stockChart" dir="ltr"></div>
         </div>
     </div>
 </div>
 
 <!-- جدول طلبات المستشفيات المفتوحة -->
-<div class="d-flex justify-content-between align-items-center mt-4 mb-3">
-    <h5 class="fw-bold mb-0">طلبات المستشفيات المفتوحة (مرتبة بالأولوية)</h5>
+<div class="section-head">
+    <h2 class="section-title">طلبات المستشفيات المفتوحة (مرتبة بالأولوية)</h2>
     {% if session.get('role') in ['Admin', 'Bank_Staff'] %}
     <a href="{{ url_for('requests_page') }}" class="btn btn-sm btn-outline-secondary">إدارة وصرف الطلبات ←</a>
     {% endif %}
 </div>
-<div class="card card-modern overflow-hidden">
+<div class="card card-modern table-card">
     <div class="table-responsive">
         <table class="table table-modern table-hover align-middle mb-0">
             <thead>
@@ -147,31 +148,36 @@
             <tbody>
                 {% for req in open_requests %}
                 <tr>
-                    <td class="text-muted">{{ req.request_id }}</td>
-                    <td class="fw-semibold">{{ req.hospital }}</td>
+                    <td class="cell-id">{{ req.request_id }}</td>
+                    <td class="cell-strong">{{ req.hospital }}</td>
                     <td>{{ req.city }}</td>
-                    <td><span class="badge bg-danger" dir="ltr">{{ req.type_name }}</span></td>
+                    <td>{{ m.drop_badge(req.type_name, 'db-sm') }}</td>
                     <td>{{ req.units_needed }}</td>
                     <td>{{ req.units_fulfilled }}</td>
-                    <td class="fw-bold text-danger">{{ req.units_missing }}</td>
+                    <td class="num-bad">{{ req.units_missing }}</td>
                     <td>
                         {% if req.urgency == 'Urgent' %}
-                            <span class="badge bg-danger badge-urgent">عاجل</span>
+                            <span class="status-pill st-rejected badge-urgent">عاجل</span>
                         {% else %}
-                            <span class="badge bg-secondary">عادي</span>
+                            <span class="status-pill st-neutral">عادي</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if req.status == 'Partial' %}
-                            <span class="badge bg-warning text-dark">جزئي</span>
+                            <span class="status-pill st-quarantine">جزئي</span>
                         {% else %}
-                            <span class="badge bg-info text-dark">قيد الانتظار</span>
+                            <span class="status-pill st-info">قيد الانتظار</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">لا توجد طلبات مفتوحة حالياً</td>
+                    <td colspan="9" class="empty-cell">
+                        <div class="empty-state">
+                            <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+                            <span class="empty-title">لا توجد طلبات مفتوحة حالياً</span>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -183,17 +189,29 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
-    const labels = [{% for item in stock_by_type %}"{{ item.type_name }}",{% endfor %}];
+    const labels = {{ stock_by_type | map(attribute='type_name') | list | tojson }};
     const counts = [{% for item in stock_by_type %}{{ item.units_available }},{% endfor %}];
 
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const options = {
-        chart: { type: 'bar', height: 245, toolbar: { show: false }, fontFamily: 'IBM Plex Sans Arabic, sans-serif' },
+        chart: {
+            type: 'bar', height: 280, toolbar: { show: false },
+            fontFamily: "'IBM Plex Sans Arabic', sans-serif", foreColor: '#6c5f61',
+            animations: { enabled: !reduceMotion, speed: 240 }
+        },
         series: [{ name: 'عدد الأكياس المتاحة', data: counts }],
-        xaxis: { categories: labels },
-        colors: ['#b91c1c'],
-        plotOptions: { bar: { borderRadius: 6, columnWidth: '48%' } },
-        dataLabels: { enabled: true },
-        grid: { borderColor: '#f1f5f9' }
+        xaxis: {
+            categories: labels, axisBorder: { show: false }, axisTicks: { show: false },
+            labels: { rotate: 0, trim: false, hideOverlappingLabels: false, style: { fontSize: '12px', fontWeight: 600, colors: '#43373a' } }
+        },
+        yaxis: { min: 0, forceNiceScale: true, labels: { style: { fontSize: '11px' } } },
+        colors: ['#b5161e'],
+        fill: { type: 'gradient', gradient: { shade: 'light', type: 'vertical', gradientToColors: ['#7a0e14'], stops: [0, 100] } },
+        plotOptions: { bar: { borderRadius: 7, borderRadiusApplication: 'end', columnWidth: '46%' } },
+        dataLabels: { enabled: true, style: { fontWeight: 600, fontSize: '11px' } },
+        grid: { borderColor: '#ece2dc', strokeDashArray: 3, padding: { left: 6, right: 6 } },
+        tooltip: { style: { fontFamily: "'IBM Plex Sans Arabic', sans-serif" } },
+        responsive: [{ breakpoint: 576, options: { chart: { height: 250 }, plotOptions: { bar: { columnWidth: '62%' } }, dataLabels: { style: { fontSize: '10px' } } } }]
     };
     new ApexCharts(document.querySelector("#stockChart"), options).render();
 </script>

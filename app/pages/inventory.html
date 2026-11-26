@@ -1,27 +1,83 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}سجل المخزون الكامل | {{ project_name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-    <div>
-        <h3 class="fw-bold mb-1">سجل أكياس الدم (Inventory)</h3>
-        <p class="text-muted small mb-0">تتبع كامل لدورة حياة كل كيس دم وتواريخ الصلاحية ومواقع التخزين</p>
+{# أعداد ملخصة محسوبة من نفس قائمة units (عرض فقط) #}
+{% set n_total      = units | length %}
+{% set n_available  = units | selectattr('status', 'equalto', 'Available')  | list | length %}
+{% set n_quarantine = units | selectattr('status', 'equalto', 'Quarantine') | list | length %}
+{% set n_used       = units | selectattr('status', 'equalto', 'Used')       | list | length %}
+{% set n_rejected   = units | selectattr('status', 'equalto', 'Rejected')   | list | length %}
+{% set n_expired    = units | selectattr('status', 'equalto', 'Expired')    | list | length %}
+{% set accent = {'Available': 'accent-done', 'Quarantine': 'accent-warn', 'Used': 'accent-used', 'Rejected': 'accent-urgent', 'Expired': 'accent-dark'} %}
+
+<section class="page-hero rise" aria-labelledby="pageTitle">
+    <img class="hero-watermark" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+    <img class="hero-watermark wm-sm" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+    <div class="hero-text">
+        <div class="hero-eyebrow"><i data-lucide="boxes"></i> المخزون</div>
+        <h1 class="hero-title" id="pageTitle">
+            سجل أكياس الدم
+        </h1>
+        <p class="hero-sub">تتبع كامل لدورة حياة كل كيس دم وتواريخ الصلاحية ومواقع التخزين</p>
     </div>
-    <div>
-        <select id="statusFilter" class="form-select form-select-sm">
-            <option value="ALL">كل الحالات ({{ units | length }})</option>
-            <option value="Available">متاح للصرف (Available)</option>
-            <option value="Quarantine">تحت الفحص (Quarantine)</option>
-            <option value="Used">تم صرفه (Used)</option>
-            <option value="Rejected">مرفوض (Rejected)</option>
-            <option value="Expired">منتهي الصلاحية (Expired)</option>
-        </select>
+</section>
+
+<div class="kpi-strip kpi-6" role="list" aria-label="عدد الأكياس حسب الحالة">
+    <div class="kpi tone-brand rise" style="--i:1" role="listitem">
+        <span class="kpi-icon"><i data-lucide="boxes"></i></span>
+        <span class="kpi-value">{{ n_total }}</span>
+        <span class="kpi-label">إجمالي الأكياس</span>
+    </div>
+    <div class="kpi tone-ok rise" style="--i:2" role="listitem">
+        <span class="kpi-icon"><i data-lucide="droplet"></i></span>
+        <span class="kpi-value">{{ n_available }}</span>
+        <span class="kpi-label">متاح</span>
+    </div>
+    <div class="kpi tone-warn rise" style="--i:3" role="listitem">
+        <span class="kpi-icon"><i data-lucide="flask-conical"></i></span>
+        <span class="kpi-value">{{ n_quarantine }}</span>
+        <span class="kpi-label">حجر صحي</span>
+    </div>
+    <div class="kpi tone-used rise" style="--i:4" role="listitem">
+        <span class="kpi-icon"><i data-lucide="send"></i></span>
+        <span class="kpi-value">{{ n_used }}</span>
+        <span class="kpi-label">مصروف</span>
+    </div>
+    <div class="kpi tone-bad rise" style="--i:4" role="listitem">
+        <span class="kpi-icon"><i data-lucide="x-circle"></i></span>
+        <span class="kpi-value">{{ n_rejected }}</span>
+        <span class="kpi-label">مرفوض</span>
+    </div>
+    <div class="kpi tone-dark rise" style="--i:4" role="listitem">
+        <span class="kpi-icon"><i data-lucide="calendar-x"></i></span>
+        <span class="kpi-value">{{ n_expired }}</span>
+        <span class="kpi-label">منتهي الصلاحية</span>
     </div>
 </div>
 
-<div class="card card-modern overflow-hidden">
+<section class="panel rise" style="--i:3" aria-labelledby="unitsTitle">
+    <div class="panel-head panel-head-wrap">
+        <span class="panel-icon"><i data-lucide="package-search"></i></span>
+        <div class="panel-titles">
+            <h2 class="panel-title" id="unitsTitle">كل الأكياس</h2>
+            <p class="panel-sub">لون الشريط على يمين الصف يوضح حالة الكيس</p>
+        </div>
+        <div class="filter-field">
+            <label class="form-label" for="statusFilter">تصفية حسب الحالة</label>
+            <select id="statusFilter" class="form-select form-select-sm">
+                <option value="ALL">كل الحالات ({{ units | length }})</option>
+                <option value="Available">متاح للصرف (Available)</option>
+                <option value="Quarantine">تحت الفحص (Quarantine)</option>
+                <option value="Used">تم صرفه (Used)</option>
+                <option value="Rejected">مرفوض (Rejected)</option>
+                <option value="Expired">منتهي الصلاحية (Expired)</option>
+            </select>
+        </div>
+    </div>
     <div class="table-responsive">
-        <table class="table table-modern table-hover align-middle mb-0" id="inventoryTable">
+        <table class="table table-soft table-hover align-middle mb-0" id="inventoryTable">
             <thead>
                 <tr>
                     <th>رقم الكيس</th>
@@ -36,18 +92,20 @@
             </thead>
             <tbody>
                 {% for u in units %}
-                <tr data-status="{{ u.status }}">
-                    <td class="fw-bold">#{{ u.unit_id }}</td>
-                    <td><span class="badge bg-danger-subtle text-danger fw-bold px-2 py-1" dir="ltr">{{ u.type_name }}</span></td>
+                <tr data-status="{{ u.status }}" class="{{ accent.get(u.status, 'accent-normal') }}">
+                    <td class="cell-strong">#{{ u.unit_id }}</td>
+                    <td>{{ m.drop_badge(u.type_name) }}</td>
                     <td>{{ u.donor_name }}</td>
                     <td class="small">{{ u.collection_date }}</td>
                     <td class="small">{{ u.expiry_date }}</td>
                     <td>
                         {% if u.status == 'Available' %}
-                            {% if u.days_left <= 7 %}
-                                <span class="badge bg-warning text-dark">{{ u.days_left }} يوم</span>
+                            {% if u.days_left <= 2 %}
+                                <span class="days-badge days-bad">{{ u.days_left }} يوم</span>
+                            {% elif u.days_left <= 7 %}
+                                <span class="days-badge days-warn">{{ u.days_left }} يوم</span>
                             {% else %}
-                                <span class="small text-muted">{{ u.days_left }} يوم</span>
+                                <span class="days-badge days-ok">{{ u.days_left }} يوم</span>
                             {% endif %}
                         {% else %}
                             <span class="text-muted small">-</span>
@@ -56,27 +114,34 @@
                     <td class="small text-muted">{{ u.storage_location or '-' }}</td>
                     <td>
                         {% if u.status == 'Available' %}
-                            <span class="badge bg-success">متاح (Available)</span>
+                            <span class="status-pill st-available">متاح (Available)</span>
                         {% elif u.status == 'Quarantine' %}
-                            <span class="badge bg-warning text-dark">حجر صحي (Quarantine)</span>
+                            <span class="status-pill st-quarantine">حجر صحي (Quarantine)</span>
                         {% elif u.status == 'Used' %}
-                            <span class="badge bg-secondary">مصروف (Used)</span>
+                            <span class="status-pill st-used">مصروف (Used)</span>
                         {% elif u.status == 'Rejected' %}
-                            <span class="badge bg-danger">مرفوض (Rejected)</span>
+                            <span class="status-pill st-rejected">مرفوض (Rejected)</span>
+                        {% elif u.status == 'Expired' %}
+                            <span class="status-pill st-expired">منتهي (Expired)</span>
                         {% else %}
-                            <span class="badge bg-dark">{{ u.status }}</span>
+                            <span class="status-pill st-neutral">{{ u.status }}</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">لا توجد أكياس مسجلة</td>
+                    <td colspan="8" class="empty-cell">
+                        <div class="empty-state">
+                            <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+                            <span class="empty-title">لا توجد أكياس مسجلة</span>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
+</section>
 <script src="{{ url_for('static', filename='table-search.js') }}"></script>
 {% endblock %}
 

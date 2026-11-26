@@ -1,34 +1,71 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}المتبرعين والتبرعات | {{ project_name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-    <div>
-        <h3 class="fw-bold mb-1">إدارة المتبرعين والتبرعات</h3>
-        <p class="text-muted small mb-0">تسجيل متبرعين جدد أو إضافة عملية تبرع (تُرسل تلقائياً للحجر الصحي للفحص)</p>
+{# أعداد من نفس قائمة donors الموجودة في الصفحة (عرض فقط) #}
+{% set n_donors   = donors | length %}
+{% set n_eligible = donors | selectattr('is_eligible') | list | length %}
+{% set n_deferred = donors | rejectattr('is_eligible') | list | length %}
+
+<section class="page-hero rise" aria-labelledby="pageTitle">
+    <img class="hero-watermark" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+    <img class="hero-watermark wm-sm" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+    <div class="hero-text">
+        <div class="hero-eyebrow"><i data-lucide="heart-handshake"></i> المتبرعين</div>
+        <h1 class="hero-title" id="pageTitle">إدارة المتبرعين والتبرعات</h1>
+        <p class="hero-sub">تسجيل متبرعين جدد أو إضافة عملية تبرع (تُرسل تلقائياً للحجر الصحي للفحص)</p>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-danger d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#newDonorModal">
+    <div class="hero-actions">
+        <button class="btn btn-outline-danger d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#newDonorModal">
             <i data-lucide="user-plus" class="icon-sm"></i> متبرع جديد
         </button>
-        <button class="btn btn-brand d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#newDonationModal">
+        <button class="btn btn-brand d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#newDonationModal">
             <i data-lucide="droplet" class="icon-sm"></i> تسجيل تبرع
         </button>
     </div>
-</div>
+</section>
 
-<!-- شريط البحث الفوري -->
-<div class="card card-modern p-3 mb-4">
-    <div class="input-group">
-        <span class="input-group-text bg-white border-end-0"><i data-lucide="search" class="icon-sm text-muted"></i></span>
-        <input type="text" id="donorSearch" class="form-control border-start-0" placeholder="ابحث باسم المتبرع، الرقم القومي، المدينة، أو فصيلة الدم...">
+<div class="kpi-strip kpi-3" role="list" aria-label="ملخص المتبرعين">
+    <div class="kpi tone-brand rise" style="--i:1" role="listitem">
+        <span class="kpi-icon"><i data-lucide="users"></i></span>
+        <span class="kpi-value">{{ n_donors }}</span>
+        <span class="kpi-label">متبرعين مسجلين</span>
+        <span class="kpi-note">إجمالي القائمة بالأسفل</span>
+    </div>
+    <div class="kpi tone-ok rise" style="--i:2" role="listitem">
+        <span class="kpi-icon"><i data-lucide="user-check"></i></span>
+        <span class="kpi-value">{{ n_eligible }}</span>
+        <span class="kpi-label">مؤهلون للتبرع</span>
+        <span class="kpi-note">حسب حالة الأهلية المسجلة</span>
+    </div>
+    <div class="kpi tone-bad rise" style="--i:3" role="listitem">
+        <span class="kpi-icon"><i data-lucide="user-x"></i></span>
+        <span class="kpi-value">{{ n_deferred }}</span>
+        <span class="kpi-label">موقوفون حالياً</span>
+        <span class="kpi-note">غير مؤهلين حسب الحالة المسجلة</span>
     </div>
 </div>
 
-<!-- جدول المتبرعين -->
-<div class="card card-modern overflow-hidden">
+<section class="panel rise" style="--i:3" aria-labelledby="donorsTitle">
+    <div class="panel-head">
+        <span class="panel-icon"><i data-lucide="contact"></i></span>
+        <div class="panel-titles">
+            <h2 class="panel-title" id="donorsTitle">سجل المتبرعين</h2>
+            <p class="panel-sub">المؤهلون بشريط أخضر، والموقوفون بشريط أحمر</p>
+        </div>
+        <span class="panel-count" title="عدد المتبرعين">{{ n_donors }}</span>
+    </div>
+    <!-- شريط البحث الفوري -->
+    <div class="panel-toolbar">
+        <label class="visually-hidden" for="donorSearch">بحث في المتبرعين</label>
+        <div class="search-field">
+            <i data-lucide="search" class="icon-sm search-icon"></i>
+            <input type="text" id="donorSearch" class="form-control" placeholder="ابحث باسم المتبرع، الرقم القومي، المدينة، أو فصيلة الدم...">
+        </div>
+    </div>
     <div class="table-responsive">
-        <table class="table table-modern table-hover align-middle mb-0" id="donorsTable">
+        <table class="table table-soft table-hover align-middle mb-0" id="donorsTable">
             <thead>
                 <tr>
                     <th>#</th>
@@ -43,79 +80,87 @@
             </thead>
             <tbody>
                 {% for d in donors %}
-                <tr>
-                    <td class="text-muted">{{ d.donor_id }}</td>
-                    <td class="fw-semibold">{{ d.full_name }}</td>
+                <tr class="{{ 'accent-done' if d.is_eligible else 'accent-urgent' }}">
+                    <td class="cell-id">{{ d.donor_id }}</td>
+                    <td class="cell-strong">{{ d.full_name }}</td>
                     <td><code>{{ d.national_id }}</code></td>
-                    <td><span class="badge bg-danger-subtle text-danger fw-bold px-2 py-1" dir="ltr">{{ d.type_name }}</span></td>
+                    <td>{{ m.drop_badge(d.type_name) }}</td>
                     <td class="small">{{ 'ذكر' if d.gender == 'Male' else 'أنثى' }} • {{ d.weight_kg or '-' }} كجم</td>
                     <td>{{ d.city or '-' }}</td>
                     <td class="small">{{ d.last_donation_date or 'لم يتبرع بعد' }}</td>
                     <td>
                         {% if d.is_eligible %}
-                            <span class="badge bg-success-subtle text-success">مؤهل للتبرع</span>
+                            <span class="status-pill st-available">مؤهل للتبرع</span>
                         {% else %}
-                            <span class="badge bg-danger-subtle text-danger" title="{{ d.deferral_reason }}">موقوف ({{ d.deferral_reason or 'غير مؤهل' }})</span>
+                            <span class="status-pill st-rejected" title="{{ d.deferral_reason }}">موقوف ({{ d.deferral_reason or 'غير مؤهل' }})</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">لا يوجد متبرعين مسجلين حتى الآن</td>
+                    <td colspan="8" class="empty-cell">
+                        <div class="empty-state">
+                            <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+                            <span class="empty-title">لا يوجد متبرعين مسجلين حتى الآن</span>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
+</section>
 
 <!-- نافذة تسجيل متبرع جديد -->
-<div class="modal fade" id="newDonorModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <form method="POST" action="{{ url_for('add_donor') }}" class="modal-content border-0 shadow">
+<div class="modal fade" id="newDonorModal" tabindex="-1" aria-labelledby="newDonorTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <form method="POST" action="{{ url_for('add_donor') }}" class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">تسجيل متبرع جديد</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h2 class="modal-title fs-5" id="newDonorTitle">
+                    <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true"> تسجيل متبرع جديد
+                </h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body row g-3">
-                <div class="col-md-6">
-                    <label class="form-label small fw-semibold">الاسم الرباعي</label>
-                    <input type="text" name="full_name" class="form-control" required>
+                <div class="col-md-6 field">
+                    <label class="form-label" for="dn_full_name">الاسم الرباعي <span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" id="dn_full_name" name="full_name" class="form-control" required>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label small fw-semibold">الرقم القومي (14 رقم)</label>
-                    <input type="text" name="national_id" maxlength="14" pattern="[0-9]{14}" class="form-control" required>
+                <div class="col-md-6 field">
+                    <label class="form-label" for="dn_national_id">الرقم القومي (14 رقم) <span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" id="dn_national_id" name="national_id" maxlength="14" pattern="[0-9]{14}" inputmode="numeric" class="form-control" aria-describedby="dn_national_id_hint" required>
+                    <small class="form-hint" id="dn_national_id_hint">14 رقماً بدون مسافات</small>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label small fw-semibold">فصيلة الدم</label>
-                    <select name="blood_type_id" class="form-select" required>
+                <div class="col-md-4 field">
+                    <label class="form-label" for="dn_blood_type">فصيلة الدم <span class="req" aria-hidden="true">*</span></label>
+                    <select id="dn_blood_type" name="blood_type_id" class="form-select" required>
                         {% for bt in blood_types %}
-                        <option value="{{ bt.blood_type_id }}">{{ bt.type_name }}</option>
+                        <option value="{{ bt.blood_type_id }}">{{ m.bt_text(bt.type_name) }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label small fw-semibold">النوع</label>
-                    <select name="gender" class="form-select" required>
+                <div class="col-md-4 field">
+                    <label class="form-label" for="dn_gender">النوع <span class="req" aria-hidden="true">*</span></label>
+                    <select id="dn_gender" name="gender" class="form-select" required>
                         <option value="Male">ذكر</option>
                         <option value="Female">أنثى</option>
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label small fw-semibold">تاريخ الميلاد (18-60 سنة)</label>
-                    <input type="date" name="birth_date" class="form-control" required>
+                <div class="col-md-4 field" data-dob-split>
+                    <label class="form-label" for="dn_birth_date">تاريخ الميلاد (18-60 سنة) <span class="req" aria-hidden="true">*</span></label>
+                    <input type="date" id="dn_birth_date" name="birth_date" class="form-control" required>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label small fw-semibold">الوزن (كجم - بحد أدنى 50)</label>
-                    <input type="number" step="0.1" min="50" name="weight_kg" class="form-control" value="70" required>
+                <div class="col-md-4 field">
+                    <label class="form-label" for="dn_weight">الوزن (كجم - بحد أدنى 50) <span class="req" aria-hidden="true">*</span></label>
+                    <input type="number" id="dn_weight" step="0.1" min="50" name="weight_kg" class="form-control" value="70" required>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label small fw-semibold">رقم الهاتف</label>
-                    <input type="text" name="phone" class="form-control">
+                <div class="col-md-4 field">
+                    <label class="form-label" for="dn_phone">رقم الهاتف</label>
+                    <input type="text" id="dn_phone" name="phone" inputmode="tel" class="form-control">
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label small fw-semibold">المدينة</label>
-                    <input type="text" name="city" class="form-control" value="القاهرة">
+                <div class="col-md-4 field">
+                    <label class="form-label" for="dn_city">المدينة</label>
+                    <input type="text" id="dn_city" name="city" class="form-control" value="القاهرة">
                 </div>
             </div>
             <div class="modal-footer">
@@ -127,34 +172,37 @@
 </div>
 
 <!-- نافذة تسجيل تبرع جديد -->
-<div class="modal fade" id="newDonationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ url_for('add_donation') }}" class="modal-content border-0 shadow">
+<div class="modal fade" id="newDonationModal" tabindex="-1" aria-labelledby="newDonationTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <form method="POST" action="{{ url_for('add_donation') }}" class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">تسجيل عملية تبرع بالدم</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h2 class="modal-title fs-5" id="newDonationTitle">
+                    <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true"> تسجيل عملية تبرع بالدم
+                </h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">اختر المتبرع</label>
-                    <select name="donor_id" class="form-select" required>
+                <div class="mb-3 field">
+                    <label class="form-label" for="dt_donor">اختر المتبرع <span class="req" aria-hidden="true">*</span></label>
+                    <select id="dt_donor" name="donor_id" class="form-select" required>
                         {% for d in donors if d.is_eligible %}
-                        <option value="{{ d.donor_id }}">{{ d.full_name }} ({{ d.type_name }}) - {{ d.national_id }}</option>
+                        <option value="{{ d.donor_id }}">{{ d.full_name }} ({{ m.bt_text(d.type_name) }}) - {{ d.national_id }}</option>
                         {% endfor %}
                     </select>
+                    <small class="form-hint">تظهر هنا أسماء المتبرعين المؤهلين فقط</small>
                 </div>
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">تاريخ السحب</label>
-                        <input type="date" name="collection_date" class="form-control" value="{{ today }}" required>
+                    <div class="col-md-6 field">
+                        <label class="form-label" for="dt_date">تاريخ السحب <span class="req" aria-hidden="true">*</span></label>
+                        <input type="date" id="dt_date" name="collection_date" class="form-control" value="{{ today }}" required>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">حجم الكيس (مل)</label>
-                        <input type="number" name="volume_ml" class="form-control" value="450" required>
+                    <div class="col-md-6 field">
+                        <label class="form-label" for="dt_volume">حجم الكيس (مل) <span class="req" aria-hidden="true">*</span></label>
+                        <input type="number" id="dt_volume" name="volume_ml" class="form-control" value="450" required>
                     </div>
-                    <div class="col-12">
-                        <label class="form-label small fw-semibold">موقع التخزين المؤقت</label>
-                        <input type="text" name="storage_location" class="form-control" value="ثلاجة الحجر الصحي Q-1">
+                    <div class="col-12 field">
+                        <label class="form-label" for="dt_storage">موقع التخزين المؤقت</label>
+                        <input type="text" id="dt_storage" name="storage_location" class="form-control" value="ثلاجة الحجر الصحي Q-1">
                     </div>
                 </div>
             </div>

@@ -1,79 +1,131 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}فحوصات المعمل | {{ project_name }}{% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <h3 class="fw-bold mb-1">مختبر الفحص والأمان الحيوي</h3>
-    <p class="text-muted small mb-0">فحص الأكياس الموجودة في الحجر الصحي (Quarantine) قبل اعتمادها للمخزون المتاح</p>
+{# أرقام من نفس قائمة pending_tests الموجودة في الصفحة (عرض فقط) #}
+{% set n_pending = pending_tests | length %}
+
+<section class="page-hero rise" aria-labelledby="pageTitle">
+    <img class="hero-watermark" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+    <img class="hero-watermark wm-sm" src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+    <div class="hero-text">
+        <div class="hero-eyebrow"><i data-lucide="microscope"></i> المعمل</div>
+        <h1 class="hero-title" id="pageTitle">مختبر الفحص والأمان الحيوي</h1>
+        <p class="hero-sub">فحص الأكياس الموجودة في الحجر الصحي (Quarantine) قبل اعتمادها للمخزون المتاح</p>
+    </div>
+</section>
+
+<div class="kpi-strip {{ 'kpi-3' if n_pending else 'kpi-1' }}" role="list" aria-label="ملخص أكياس المعمل">
+    <div class="kpi tone-warn rise" style="--i:1" role="listitem">
+        <span class="kpi-icon"><i data-lucide="flask-conical"></i></span>
+        <span class="kpi-value">{{ n_pending }}</span>
+        <span class="kpi-label">أكياس بانتظار اعتماد النتيجة</span>
+        <span class="kpi-note">الكروت المعروضة بالأسفل</span>
+    </div>
+    {% if n_pending %}
+    {% set oldest = pending_tests | map(attribute='collection_date') | min %}
+    <div class="kpi tone-info rise" style="--i:2" role="listitem">
+        <span class="kpi-icon"><i data-lucide="calendar-clock"></i></span>
+        <span class="kpi-value kpi-date" dir="ltr">{{ oldest }}</span>
+        <span class="kpi-label">أقدم تاريخ سحب بين الأكياس المعلّقة</span>
+        <span class="kpi-note">من تواريخ السحب المسجلة</span>
+    </div>
+    <div class="kpi tone-brand rise" style="--i:3" role="listitem">
+        <span class="kpi-icon"><i data-lucide="droplets"></i></span>
+        <span class="kpi-label">الأكياس المعلّقة حسب الفصيلة</span>
+        <ul class="type-chips" aria-label="عدد الأكياس المعلّقة لكل فصيلة">
+            {% for grp in pending_tests | groupby('type_name') %}
+            <li class="type-chip">{{ m.drop_badge(grp.grouper, 'db-sm') }}<span class="type-chip-n">× {{ grp.list | length }}</span></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 </div>
 
-<h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-    <span class="badge bg-warning text-dark">{{ pending_tests | length }}</span>
-    أكياس بانتظار اعتماد نتيجة الفحص
-</h5>
-
-<div class="row g-3 mb-5">
+<section class="panel rise" style="--i:3" aria-labelledby="pendingTitle">
+    <div class="panel-head tone-warn">
+        <span class="panel-icon"><i data-lucide="test-tubes"></i></span>
+        <div class="panel-titles">
+            <h2 class="panel-title" id="pendingTitle">أكياس بانتظار اعتماد نتيجة الفحص</h2>
+            <p class="panel-sub">اختر نتيجة كل تحليل ثم اعتمد النتيجة النهائية للكيس</p>
+        </div>
+        <span class="panel-count" title="عدد الأكياس بانتظار الاعتماد">{{ n_pending }}</span>
+    </div>
+    <div class="panel-body">
+        <div class="row g-3">
     {% for t in pending_tests %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card card-modern h-100 border-top border-4 border-warning">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <span class="fw-bold fs-5">كيس #{{ t.unit_id }}</span>
-                        <div class="small text-muted">سُحب في: {{ t.collection_date }}</div>
-                    </div>
-                    <span class="badge bg-danger-subtle text-danger blood-badge px-3 py-2" dir="ltr">{{ t.type_name }}</span>
+    <div class="col-md-6 col-xl-4">
+        <div class="card card-modern lab-card">
+            <div class="lab-card-head">
+                <div>
+                    <div class="lab-unit">كيس #{{ t.unit_id }}</div>
+                    <div class="lab-date">سُحب في: <span dir="ltr" style="unicode-bidi:isolate">{{ t.collection_date }}</span></div>
                 </div>
+                {{ m.drop_badge(t.type_name, 'db-lg') }}
+            </div>
 
+            <div class="lab-card-body">
                 <form method="POST" action="{{ url_for('submit_lab_test', test_id=t.test_id) }}">
-                    <div class="row g-2 mb-3 small">
-                        <div class="col-6">
-                            <label class="form-label fw-semibold mb-1">تحليل HIV</label>
-                            <select name="hiv_result" class="form-select form-select-sm">
+                    <div class="row g-2 mb-3">
+                        <div class="col-12 col-sm-6 field">
+                            <label class="form-label" for="hiv_{{ t.test_id }}">تحليل HIV</label>
+                            <select id="hiv_{{ t.test_id }}" name="hiv_result" class="form-select form-select-sm">
                                 <option value="Negative" selected>سلبي (Negative)</option>
                                 <option value="Positive">إيجابي (Positive)</option>
                             </select>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold mb-1">تحليل HBV</label>
-                            <select name="hbv_result" class="form-select form-select-sm">
+                        <div class="col-12 col-sm-6 field">
+                            <label class="form-label" for="hbv_{{ t.test_id }}">تحليل HBV</label>
+                            <select id="hbv_{{ t.test_id }}" name="hbv_result" class="form-select form-select-sm">
                                 <option value="Negative" selected>سلبي (Negative)</option>
                                 <option value="Positive">إيجابي (Positive)</option>
                             </select>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold mb-1">تحليل HCV</label>
-                            <select name="hcv_result" class="form-select form-select-sm">
+                        <div class="col-12 col-sm-6 field">
+                            <label class="form-label" for="hcv_{{ t.test_id }}">تحليل HCV</label>
+                            <select id="hcv_{{ t.test_id }}" name="hcv_result" class="form-select form-select-sm">
                                 <option value="Negative" selected>سلبي (Negative)</option>
                                 <option value="Positive">إيجابي (Positive)</option>
                             </select>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold mb-1">تحليل Syphilis</label>
-                            <select name="syphilis_result" class="form-select form-select-sm">
+                        <div class="col-12 col-sm-6 field">
+                            <label class="form-label" for="syph_{{ t.test_id }}">تحليل Syphilis</label>
+                            <select id="syph_{{ t.test_id }}" name="syphilis_result" class="form-select form-select-sm">
                                 <option value="Negative" selected>سلبي (Negative)</option>
                                 <option value="Positive">إيجابي (Positive)</option>
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-brand w-100 btn-sm py-2">اعتماد النتيجة النهائية</button>
+                    <button type="submit" class="btn btn-brand w-100 d-inline-flex align-items-center justify-content-center gap-2">
+                        <i data-lucide="badge-check" class="icon-sm"></i> اعتماد النتيجة النهائية
+                    </button>
                 </form>
             </div>
         </div>
     </div>
     {% else %}
     <div class="col-12">
-        <div class="card card-modern p-4 text-center text-muted">
-            لا توجد أكياس معلقة في الحجر الصحي حالياً؛ جميع الأكياس تم فحصها.
+        <div class="empty-state">
+            <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+            <span class="empty-title">لا توجد أكياس معلقة في الحجر الصحي حالياً؛ جميع الأكياس تم فحصها.</span>
         </div>
     </div>
     {% endfor %}
-</div>
+        </div>
+    </div>
+</section>
 
-<h5 class="fw-bold mb-3">سجل آخر الفحوصات المعتمدة</h5>
-<div class="card card-modern overflow-hidden">
+<section class="panel rise" style="--i:4" aria-labelledby="historyTitle">
+    <div class="panel-head">
+        <span class="panel-icon"><i data-lucide="history"></i></span>
+        <div class="panel-titles">
+            <h2 class="panel-title" id="historyTitle">سجل آخر الفحوصات المعتمدة</h2>
+        </div>
+        <span class="panel-count" title="عدد السجلات المعروضة">{{ completed_tests | length }}</span>
+    </div>
     <div class="table-responsive">
-        <table class="table table-modern align-middle mb-0">
+        <table class="table table-soft align-middle mb-0">
             <thead>
                 <tr>
                     <th>رقم الكيس</th>
@@ -89,18 +141,18 @@
             </thead>
             <tbody>
                 {% for c in completed_tests %}
-                <tr>
-                    <td class="fw-bold">#{{ c.unit_id }}</td>
-                    <td><span class="badge bg-danger-subtle text-danger" dir="ltr">{{ c.type_name }}</span></td>
-                    <td class="small">{{ c.hiv_result }}</td>
-                    <td class="small">{{ c.hbv_result }}</td>
-                    <td class="small">{{ c.hcv_result }}</td>
-                    <td class="small">{{ c.syphilis_result }}</td>
+                <tr class="{{ 'accent-done' if c.final_result == 'Passed' else 'accent-urgent' }}">
+                    <td class="cell-strong">#{{ c.unit_id }}</td>
+                    <td>{{ m.drop_badge(c.type_name, 'db-sm') }}</td>
+                    <td class="small {{ 'result-pos' if c.hiv_result == 'Positive' }}">{{ c.hiv_result }}</td>
+                    <td class="small {{ 'result-pos' if c.hbv_result == 'Positive' }}">{{ c.hbv_result }}</td>
+                    <td class="small {{ 'result-pos' if c.hcv_result == 'Positive' }}">{{ c.hcv_result }}</td>
+                    <td class="small {{ 'result-pos' if c.syphilis_result == 'Positive' }}">{{ c.syphilis_result }}</td>
                     <td>
                         {% if c.final_result == 'Passed' %}
-                            <span class="badge bg-success">سليم (Passed)</span>
+                            <span class="status-pill st-available">سليم (Passed)</span>
                         {% else %}
-                            <span class="badge bg-danger">مرفوض (Failed)</span>
+                            <span class="status-pill st-rejected">مرفوض (Failed)</span>
                         {% endif %}
                     </td>
                     <td class="small">{{ c.test_date }}</td>
@@ -108,11 +160,16 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">لا توجد فحوصات سابقة مسجلة</td>
+                    <td colspan="9" class="empty-cell">
+                        <div class="empty-state">
+                            <img src="{{ url_for('static', filename='drop.svg') }}" alt="" aria-hidden="true">
+                            <span class="empty-title">لا توجد فحوصات سابقة مسجلة</span>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
+</section>
 {% endblock %}

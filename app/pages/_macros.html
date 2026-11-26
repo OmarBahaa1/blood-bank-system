@@ -1,0 +1,17 @@
+{#- ماكروهات عرض فقط. فصيلة الدم دائماً في span معزول LTR حتى تظهر A+ و O- و AB- صحيحة داخل صفحة RTL.
+    &#x2066; / &#x2069; (LRI / PDI) يعزلان النص أيضاً عندما يُنسخ textContent إلى مكان آخر
+    (مثل قائمة فلتر الفصيلة التي يبنيها table-search.js). -#}
+
+{%- macro bt(type_name) -%}
+<span class="bt" dir="ltr">&#x2066;{{ type_name }}&#x2069;</span>
+{%- endmacro -%}
+
+{#- شارة قطرة تحتوي الفصيلة -#}
+{%- macro drop_badge(type_name, size='') -%}
+<span class="drop-badge {{ size }}" title="فصيلة &#x2066;{{ type_name }}&#x2069;">{{ bt(type_name) }}</span>
+{%- endmacro -%}
+
+{#- نص فصيلة داخل <option> (لا يقبل span) -#}
+{%- macro bt_text(type_name) -%}
+&#x2066;{{ type_name }}&#x2069;
+{%- endmacro -%}
